@@ -1,4 +1,4 @@
-from interfaz.ventana_principal import iniciar_aplicacion
+"""Punto de entrada reservado para la futura aplicación CyberShield."""
 
-if __name__ == "__main__":
-    iniciar_aplicacion()
+# La implementación de la aplicación se realizará en fases posteriores.
+# Este archivo define el punto de entrada previsto del producto.
