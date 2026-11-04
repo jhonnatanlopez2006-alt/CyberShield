@@ -1,0 +1,3 @@
+# El prototipo inicial utiliza la biblioteca estándar de Python.
+# Dependencia opcional para gráficas:
+# matplotlib>=3.8
