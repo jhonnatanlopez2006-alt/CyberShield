@@ -1,4 +1,4 @@
-"""Punto de entrada reservado para la futura aplicación CyberShield."""
+"""Punto de entrada previsto para la futura aplicación CyberShield."""
 
-# La implementación de la aplicación se realizará en fases posteriores.
-# Este archivo define el punto de entrada previsto del producto.
+# TODO: implementar la inicialización de la aplicación en una fase posterior.
+# Esta primera entrega documenta la estructura y el diseño; aún no hay producto funcional.
