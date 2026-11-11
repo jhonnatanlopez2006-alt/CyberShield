@@ -1,4 +1,5 @@
-"""Punto de entrada previsto para la futura aplicación CyberShield."""
+"""Punto de entrada de CyberShield Fase II (Python 3.10+)."""
+from interfaz.ventana_principal import VentanaPrincipal
 
-# TODO: implementar la inicialización de la aplicación en una fase posterior.
-# Esta primera entrega documenta la estructura y el diseño; aún no hay producto funcional.
+if __name__ == "__main__":
+    VentanaPrincipal().ejecutar()
