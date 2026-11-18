@@ -295,7 +295,7 @@ $("form").onsubmit=e=>{
   const before=nextPid;
   sbOriginalSubmit(e);
   const created=procesos.find(p=>p.pid===before);
-  if(sbUser&&created)void sbRun(()=>sbSaveProcess(created));
+  if(sbUser&&created)void sbRun(async()=>{if(!sbScenarioId)await sbSaveScenario("personalizado");await sbSaveProcess(created)});
 };
 sb.auth.onAuthStateChange((event,session)=>{
   if(event==="SIGNED_OUT"){
