@@ -1,19 +1,15 @@
 # Tecnologías utilizadas
 
-| Tecnología | Uso actual |
+| Tecnología | Uso |
 |---|---|
 | Python 3.10+ | Lógica de simulación y módulos del prototipo |
 | Tkinter / ttk | Interfaz gráfica de escritorio |
-| JSONL | Persistencia de eventos simulados |
-| HTML5, CSS y JavaScript | Dashboard web demostrativo en `index.html` |
-| Git y GitHub | Control de versiones y alojamiento del proyecto |
-| unittest | Pruebas automatizadas incluidas en `pruebas/` |
-| Visual Studio Code | Editor recomendado para el desarrollo |
+| Supabase PostgreSQL | Persistencia de procesos simulados, escenarios, alertas y eventos |
+| supabase-py | Cliente Python para Supabase |
+| python-dotenv | Carga local de variables de entorno |
+| JSONL | Registro local de eventos de respaldo |
+| HTML5, CSS y JavaScript | Dashboard web demostrativo |
+| Git y GitHub | Control de versiones |
+| unittest | Pruebas automatizadas |
 
-## Entorno
-La aplicación de escritorio requiere Python y Tkinter en un sistema con entorno gráfico (Windows 10/11 o Linux). En algunas distribuciones Linux Tkinter debe instalarse mediante el gestor de paquetes del sistema.
-
-El dashboard web es un recurso demostrativo independiente. No reemplaza la ejecución de la aplicación Python/Tkinter.
-
-## Dependencias
-El prototipo no requiere paquetes de terceros en Python. Las dependencias de la biblioteca estándar se documentan en el código. Matplotlib no es necesario para la versión actual.
+Los procesos, PID y métricas continúan siendo ficticios. La base de datos almacena datos de simulación, no información de procesos reales del sistema operativo.
