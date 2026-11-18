@@ -164,7 +164,12 @@ $("sb-signup").addEventListener("click",async()=>{
   $("sb-auth-error").textContent="";
   const email=$("sb-email").value.trim(),password=$("sb-password").value;
   if(!email||password.length<6){sbError({message:"Escribe un correo y una contraseña de al menos 6 caracteres."});return;}
-  const {data,error}=await sb.auth.signUp({email,password});
+  const emailRedirectTo = window.location.origin + window.location.pathname;
+  const {data,error}=await sb.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo }
+  });
   if(error){sbError(error);return;}
   if(data.session) await sbActivate(data.user);
   else $("sb-auth-error").textContent="Cuenta creada. Revisa tu correo para confirmar la cuenta y después inicia sesión.";
