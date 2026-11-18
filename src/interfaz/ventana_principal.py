@@ -35,29 +35,34 @@ class VentanaPrincipal:
         self.pagina = "Dashboard"
         self._estilos()
         self._estructura()
+        if self.cloud_status:
+            self.mensaje(self.cloud_status)
         self.actualizar()
 
     def _conectar_supabase(self):
         """Solicita inicio de sesión solo si Supabase está configurado."""
+        self.cloud_status = None
         if not os.getenv("SUPABASE_URL") or not os.getenv("SUPABASE_PUBLISHABLE_KEY"):
             return
-        correo = simpledialog.askstring("CyberShield - Supabase", "Correo de Supabase Auth:", parent=self.root)
+        correo = simpledialog.askstring(
+            "CyberShield - Supabase", "Correo de Supabase Auth:", parent=self.root
+        )
         if not correo:
-            self.mensaje("Supabase no conectado: se conserva el modo local.")
+            self.cloud_status = "Supabase no conectado: se conserva el modo local."
             return
-        contrasena = simpledialog.askstring("CyberShield - Supabase", "Contraseña:", show="*", parent=self.root)
+        contrasena = simpledialog.askstring(
+            "CyberShield - Supabase", "Contraseña:", show="*", parent=self.root
+        )
         if not contrasena:
-            self.mensaje("Supabase no conectado: se conserva el modo local.")
+            self.cloud_status = "Supabase no conectado: se conserva el modo local."
             return
         try:
             self.cloud = SupabaseRepository()
             self.cloud.iniciar_sesion(correo, contrasena)
-            self.mensaje("Sesión Supabase autenticada correctamente.")
+            self.cloud_status = "Sesión Supabase autenticada correctamente."
         except Exception as exc:
             self.cloud = None
-            messagebox.showwarning("Supabase no disponible", f"No fue posible iniciar sesión. El simulador continuará en modo local.\
-\
-Detalle: {exc}", parent=self.root)
+            self.cloud_status = f"Supabase no disponible; se conserva el modo local. Detalle: {exc}"
 
     def _cloud_evento(self, tipo, detalle, pid=None):
         if not self.cloud:
