@@ -1,24 +1,16 @@
 # Integración con Supabase
 
 ## Base de datos
-Ejecuta el contenido de `supabase/schema.sql` en el SQL Editor del proyecto CyberShield (Project ID: `diksrgovrnlzqomrmlev`). No lo ejecutes en el proyecto Callegold.
+Las tablas de CyberShield son `cybershield_scenarios`, `cybershield_processes`, `cybershield_events` y `cybershield_alerts`. Ejecuta el contenido actualizado de `supabase/schema.sql` en el SQL Editor del proyecto CyberShield. Es compatible con las tablas creadas en la primera ejecución: agrega `owner_id`, índices y políticas por usuario sin borrar tablas.
 
-## Tablas
-- `cybershield_scenarios`: sesiones de simulación.
-- `cybershield_processes`: procesos ficticios, estado, prioridad, CPU y RAM simuladas.
-- `cybershield_events`: bitácora de acciones.
-- `cybershield_alerts`: detecciones didácticas y severidad.
+## Configuración local
+Copia `.env.example` como `.env` y configura la URL y la clave publicable. El archivo `.env` está excluido por Git.
 
-## Variables locales
-Copia `.env.example` como `.env` y configura la URL y la clave publicable del proyecto CyberShield. No guardes el archivo `.env` en Git.
+## Cuenta de acceso
+En Supabase Dashboard → Authentication → Users, crea una cuenta de usuario con correo y contraseña. La app de escritorio solicitará esas credenciales al iniciar si la configuración de Supabase existe. No escribas la contraseña en el código ni en el repositorio.
 
-## Dependencias
-Ejecuta `python -m pip install -r requirements.txt`.
+## Seguridad
+Todas las tablas tienen RLS y cada fila pertenece al usuario autenticado mediante `owner_id = auth.uid()`. La clave publicable no autentica al usuario por sí sola; se requiere una sesión de Supabase Auth. No uses claves `sb_secret_...` ni `service_role` en clientes públicos o escritorio.
 
-## Seguridad y autenticación
-Todas las tablas tienen RLS activado y no aceptan el rol anónimo. Antes de leer o escribir, la app debe autenticar al usuario con Supabase Auth y pasar el access token de la sesión a `SupabaseRepository(access_token=...)`. La clave publicable identifica el proyecto; no reemplaza la autenticación del usuario.
-
-Nunca incluyas claves `sb_secret_...` o `service_role` en `index.html`, scripts públicos, ni en el repositorio.
-
-## Estado de integración
-Esta entrega añade el esquema y la capa de persistencia Python, pero no afirma que la base ya esté aplicada ni que la aplicación esté conectada en ejecución. Falta aplicar el SQL en el panel del proyecto y configurar un flujo de inicio de sesión.
+## Modo sin conexión
+Si no existe configuración, no se puede iniciar sesión o Supabase no está disponible, el simulador conserva su operación local y el registro JSONL. Los datos locales no se sincronizan retroactivamente de forma automática.
