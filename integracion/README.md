@@ -1,0 +1,1 @@
+# Integración Supabase\n\nMódulo opcional de persistencia de datos de simulación. No incluir claves aquí.\n
