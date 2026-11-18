@@ -61,6 +61,10 @@ create index if not exists idx_cs_process_owner_pid on public.cybershield_proces
 create unique index if not exists uq_cs_process_owner_pid on public.cybershield_processes(owner_id,pid);
 create index if not exists idx_cs_process_scenario on public.cybershield_processes(scenario_id);
 create index if not exists idx_cs_process_state on public.cybershield_processes(state);
+create index if not exists idx_cs_events_process_id on public.cybershield_events(process_id);
+create index if not exists idx_cs_events_scenario_id on public.cybershield_events(scenario_id);
+create index if not exists idx_cs_alerts_process_id on public.cybershield_alerts(process_id);
+create index if not exists idx_cs_alerts_scenario_id on public.cybershield_alerts(scenario_id);
 create index if not exists idx_cs_events_owner_date on public.cybershield_events(owner_id,occurred_at desc);
 create index if not exists idx_cs_alerts_owner_date on public.cybershield_alerts(owner_id,detected_at desc);
 
