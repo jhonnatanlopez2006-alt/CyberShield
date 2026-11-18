@@ -239,7 +239,8 @@ class VentanaPrincipal:
             return
         try:
             p = self.gestor.crear(nombre)
-            self.registro.guardar("creación", f"PID {p.pid}: {p.nombre}")\n            if self.cloud:\n                try:\n                    self.cloud.guardar_proceso(p)\n                    self._cloud_evento("creación", f"PID {p.pid}: {p.nombre}", p.pid)\n                except Exception as exc:\n                    self.mensaje(f"No se pudo guardar en Supabase: {exc}")
+            self.registro.guardar("creación", f"PID {p.pid}: {p.nombre}")
+            if self.cloud:\n                try:\n                    self.cloud.guardar_proceso(p)\n                    self._cloud_evento("creación", f"PID {p.pid}: {p.nombre}", p.pid)\n                except Exception as exc:\n                    self.mensaje(f"No se pudo guardar en Supabase: {exc}")
             self.mensaje(f"Proceso creado: {p.nombre} (PID {p.pid})")
             self.actualizar()
         except ValueError as exc:
@@ -253,7 +254,8 @@ class VentanaPrincipal:
         pid = int(self.tabla.item(seleccion[0], "values")[0])
         try:
             p = self.gestor.cambiar_estado(pid, accion)
-            self.registro.guardar("estado", f"PID {pid}: {accion} -> {p.estado}")\n            if self.cloud:\n                try:\n                    self.cloud.guardar_proceso(p)\n                    self._cloud_evento("estado", f"PID {pid}: {accion} -> {p.estado}", pid)\n                except Exception as exc:\n                    self.mensaje(f"No se pudo actualizar en Supabase: {exc}")
+            self.registro.guardar("estado", f"PID {pid}: {accion} -> {p.estado}")
+            if self.cloud:\n                try:\n                    self.cloud.guardar_proceso(p)\n                    self._cloud_evento("estado", f"PID {pid}: {accion} -> {p.estado}", pid)\n                except Exception as exc:\n                    self.mensaje(f"No se pudo actualizar en Supabase: {exc}")
             self.mensaje(f"PID {pid}: {p.estado}")
             self.actualizar()
         except (ValueError, KeyError) as exc:
@@ -261,7 +263,8 @@ class VentanaPrincipal:
 
     def escenario(self, nombre):
         cargar(self.gestor, nombre)
-        self.registro.guardar("escenario", nombre)\n        if self.cloud:\n            try:\n                self.cloud.crear_escenario(nombre, nombre.lower())\n                self._cloud_evento("escenario", nombre)\n                for proceso in self.gestor.listar():\n                    self.cloud.guardar_proceso(proceso)\n            except Exception as exc:\n                self.mensaje(f"No se pudo guardar el escenario en Supabase: {exc}")
+        self.registro.guardar("escenario", nombre)
+        if self.cloud:\n            try:\n                self.cloud.crear_escenario(nombre, nombre.lower())\n                self._cloud_evento("escenario", nombre)\n                for proceso in self.gestor.listar():\n                    self.cloud.guardar_proceso(proceso)\n            except Exception as exc:\n                self.mensaje(f"No se pudo guardar el escenario en Supabase: {exc}")
         self.mensaje(f"Escenario «{nombre}» cargado correctamente.")
         self.actualizar()
         self.analizar()
@@ -272,7 +275,8 @@ class VentanaPrincipal:
             self.mensaje("Análisis finalizado: sin anomalías simuladas.")
         for alerta in self.alertas:
             detalle = f"PID {alerta['pid']} | {alerta['tipo']}: {alerta['detalle']}"
-            self.registro.guardar("alerta", detalle)\n            if self.cloud:\n                try:\n                    self.cloud.registrar_alerta(alerta["tipo"], "alta" if alerta["tipo"] == "CPU" else "media", detalle, process_pid=alerta["pid"])\n                    self._cloud_evento("alerta", detalle, alerta["pid"])\n                except Exception as exc:\n                    self.mensaje(f"No se pudo guardar la alerta en Supabase: {exc}")
+            self.registro.guardar("alerta", detalle)
+            if self.cloud:\n                try:\n                    self.cloud.registrar_alerta(alerta["tipo"], "alta" if alerta["tipo"] == "CPU" else "media", detalle, process_pid=alerta["pid"])\n                    self._cloud_evento("alerta", detalle, alerta["pid"])\n                except Exception as exc:\n                    self.mensaje(f"No se pudo guardar la alerta en Supabase: {exc}")
             self.mensaje("⚠ " + detalle)
         self.actualizar()
 
