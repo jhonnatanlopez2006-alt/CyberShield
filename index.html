@@ -54,6 +54,7 @@
   </div>
   <div class="modalback hidden" id="modal"><form class="modal" id="form"><h2>Nuevo proceso ficticio</h2><p>Configura un proceso de prueba. Ningún proceso real de tu equipo se verá afectado.</p><label class="field">Nombre<input name="nombre" maxlength="50" placeholder="Ejemplo: navegador" required></label><label class="field">Prioridad (1 a 5)<input name="prioridad" type="number" min="1" max="5" step="1" value="3" required></label><label class="field">Uso de CPU (%)<input name="cpu" type="number" min="0" max="100" step="0.1" value="12" required></label><label class="field">Memoria RAM (MB)<input name="memoria" type="number" min="0" max="100000" step="0.1" value="128" required></label><div class="modalactions"><button class="btn" type="button" id="cancel">Cancelar</button><button class="btn primary" type="submit">Crear proceso</button></div></form></div>
   <div class="toast hidden" id="toast" role="status"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -79,6 +80,230 @@ $("new").onclick=()=>{$("modal").classList.remove("hidden");$("form").elements.n
 $("form").onsubmit=e=>{e.preventDefault();const d=new FormData(e.target);try{const p=crear(String(d.get("nombre")),Number(d.get("prioridad")),Number(d.get("cpu")),Number(d.get("memoria")));registrar("Creación","PID "+p.pid+": "+p.nombre);selected=p.pid;$("modal").classList.add("hidden");e.target.reset();render();aviso("Proceso creado correctamente")}catch(err){aviso(err.message)}};
 $("export").onclick=()=>{const blob=new Blob([JSON.stringify(events,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="cybershield-eventos.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);aviso("Historial descargado en formato JSON")};
 render();renderLog();
+
+/* ===== Persistencia web con Supabase ===== */
+const SB_URL = "https://diksrgovrnlzqomrmlev.supabase.co";
+const SB_KEY = "sb_publishable_zID0IrWH5z73SJic7VouCQ__fWKxhyV";
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+let sbUser = null;
+let sbScenarioId = null;
+const sbProcessIds = new Map();
+const sbAlertKeys = new Set();
+
+const authCss = document.createElement("style");
+authCss.textContent = `
+#sb-auth{position:fixed;inset:0;z-index:1000;background:#070d18ee;display:grid;place-items:center;padding:18px}
+#sb-auth .auth-card{width:min(440px,100%);background:#14243a;border:1px solid #3a536e;border-radius:18px;padding:28px;box-shadow:0 20px 70px #000b}
+#sb-auth h2{font-size:23px;margin:0 0 8px;color:#eff6ff}
+#sb-auth p{color:#a5b5cb;font-size:13px;line-height:1.55}
+#sb-auth label{display:block;color:#c5d5e7;font-size:12px;margin-top:14px}
+#sb-auth input{display:block;width:100%;box-sizing:border-box;padding:12px;margin-top:6px;border:1px solid #405670;border-radius:9px;background:#0c1627;color:white}
+#sb-auth .auth-actions{display:flex;gap:9px;margin-top:18px;flex-wrap:wrap}
+#sb-auth button{padding:11px 15px;border-radius:9px;background:#54d9ee;color:#071623;font-weight:750}
+#sb-auth button.secondary{background:#263a52;color:#eff6ff}
+#sb-auth .auth-error{color:#ff9aa9;min-height:20px}
+#sb-auth .auth-note{font-size:11px;color:#90a6bf}
+#sb-userbar{display:flex;align-items:center;gap:10px}
+#sb-userbar span{font-size:12px;color:#a9c7d6}
+#sb-userbar button{background:#263a52;color:#eff6ff;padding:9px 12px;border-radius:9px;font-size:12px}
+`;
+document.head.append(authCss);
+
+const authRoot = document.createElement("div");
+authRoot.id = "sb-auth";
+authRoot.innerHTML = `
+ <form class="auth-card" id="sb-auth-form">
+  <div class="eyebrow">CYBERSHIELD · CONEXIÓN EN LA NUBE</div>
+  <h2 id="sb-auth-title">Iniciar sesión</h2>
+  <p>Accede para guardar procesos, escenarios, alertas e historial en tu base de datos Supabase.</p>
+  <label>Correo electrónico<input id="sb-email" type="email" autocomplete="email" required></label>
+  <label>Contraseña<input id="sb-password" type="password" minlength="6" autocomplete="current-password" required></label>
+  <div class="auth-actions">
+   <button type="submit" id="sb-login">Iniciar sesión</button>
+   <button type="button" class="secondary" id="sb-signup">Crear cuenta</button>
+  </div>
+  <p class="auth-error" id="sb-auth-error" role="alert"></p>
+  <p class="auth-note">La sesión queda guardada en este navegador. Solo podrás consultar tus propios registros.</p>
+ </form>`;
+document.body.append(authRoot);
+
+const userBar = document.createElement("div");
+userBar.id = "sb-userbar";
+userBar.innerHTML = '<span id="sb-user-email">Sin sesión</span><button type="button" id="sb-logout">Cerrar sesión</button>';
+document.querySelector(".top").append(userBar);
+userBar.classList.add("hidden");
+
+function sbError(error) {
+  const message = error?.message || "No fue posible completar la operación.";
+  $("sb-auth-error").textContent = message;
+  aviso(message);
+}
+async function sbStartSession() {
+  const {data,error}=await sb.auth.getSession();
+  if(error) throw error;
+  if(data.session) await sbActivate(data.session.user);
+  else authRoot.classList.remove("hidden");
+}
+async function sbActivate(user) {
+  sbUser=user;
+  authRoot.classList.add("hidden");
+  userBar.classList.remove("hidden");
+  $("sb-user-email").textContent=user.email || "Usuario autenticado";
+  aviso("Sesión iniciada. Conectando datos guardados...");
+  await sbRestore();
+}
+$("sb-auth-form").addEventListener("submit",async e=>{
+  e.preventDefault();
+  $("sb-auth-error").textContent="";
+  const email=$("sb-email").value.trim(),password=$("sb-password").value;
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error){sbError(error);return;}
+  try{await sbActivate(data.user)}catch(err){sbError(err)}
+});
+$("sb-signup").addEventListener("click",async()=>{
+  $("sb-auth-error").textContent="";
+  const email=$("sb-email").value.trim(),password=$("sb-password").value;
+  if(!email||password.length<6){sbError({message:"Escribe un correo y una contraseña de al menos 6 caracteres."});return;}
+  const {data,error}=await sb.auth.signUp({email,password});
+  if(error){sbError(error);return;}
+  if(data.session) await sbActivate(data.user);
+  else $("sb-auth-error").textContent="Cuenta creada. Revisa tu correo para confirmar la cuenta y después inicia sesión.";
+});
+$("sb-logout").addEventListener("click",async()=>{
+  const {error}=await sb.auth.signOut();
+  if(error){aviso(error.message);return;}
+  sbUser=null;sbScenarioId=null;sbProcessIds.clear();
+  procesos=[];selected=null;events=[];render();renderLog();
+  userBar.classList.add("hidden");authRoot.classList.remove("hidden");
+  $("sb-auth-title").textContent="Iniciar sesión";
+});
+async function sbSaveScenario(tipo) {
+  if(!sbUser)return;
+  const {data,error}=await sb.from("cybershield_scenarios")
+    .insert({name:tipo==="normal"?"Escenario normal":"Escenario sospechoso",scenario_type:tipo})
+    .select("id").single();
+  if(error)throw error;
+  sbScenarioId=data.id;
+}
+async function sbSaveProcess(p) {
+  if(!sbUser)return;
+  const payload={scenario_id:sbScenarioId,pid:p.pid,name:p.nombre,state:p.estado,
+    priority:p.prioridad,cpu_percent:p.cpu,memory_mb:p.memoria};
+  const existing=sbProcessIds.get(p.pid);
+  let result;
+  if(existing){
+    result=await sb.from("cybershield_processes").update(payload).eq("id",existing).select("id").single();
+  }else{
+    result=await sb.from("cybershield_processes").insert(payload).select("id").single();
+  }
+  if(result.error)throw result.error;
+  sbProcessIds.set(p.pid,result.data.id);
+}
+async function sbSaveEvent(tipo,detalle) {
+  if(!sbUser)return;
+  const {error}=await sb.from("cybershield_events").insert({
+    scenario_id:sbScenarioId,event_type:tipo,details:detalle
+  });
+  if(error)throw error;
+}
+async function sbSaveAlert(alerta) {
+  if(!sbUser)return;
+  const description=alerta.texto;
+  const key=alerta.pid+"|"+description;
+  if(sbAlertKeys.has(key))return;
+  const severity=/CPU|Memoria/.test(description)?"alta":"media";
+  const {error}=await sb.from("cybershield_alerts").insert({
+    scenario_id:sbScenarioId,process_pid:alerta.pid,
+    alert_type:/CPU/.test(description)?"CPU":/Memoria/.test(description)?"RAM":"Nombre",
+    severity,description
+  });
+  if(error)throw error;
+  sbAlertKeys.add(key);
+}
+async function sbRun(task) {
+  if(!sbUser)return;
+  try{await task()}catch(error){console.error("CyberShield/Supabase:",error);aviso("No se pudo sincronizar con Supabase: "+(error.message||error))}
+}
+async function sbRestore() {
+  const {data:scenarios,error}=await sb.from("cybershield_scenarios")
+    .select("id,name,scenario_type,created_at").order("created_at",{ascending:false}).limit(1);
+  if(error)throw error;
+  if(!scenarios?.length){aviso("Conectado a Supabase. Ejecuta un escenario para guardar los primeros datos.");return;}
+  sbScenarioId=scenarios[0].id;
+  const {data:rows,error:processError}=await sb.from("cybershield_processes")
+    .select("*").eq("scenario_id",sbScenarioId).order("created_at",{ascending:true});
+  if(processError)throw processError;
+  const latest=new Map();
+  for(const row of rows||[])latest.set(row.pid,row);
+  procesos=[];selected=null;sbProcessIds.clear();
+  for(const row of latest.values()){
+    procesos.push({pid:row.pid,nombre:row.name,estado:row.state,prioridad:row.priority,cpu:Number(row.cpu_percent),memoria:Number(row.memory_mb)});
+    sbProcessIds.set(row.pid,row.id);
+    nextPid=Math.max(nextPid,row.pid+1);
+  }
+  const {data:ev,error:eventError}=await sb.from("cybershield_events")
+    .select("event_type,details,occurred_at").eq("scenario_id",sbScenarioId)
+    .order("occurred_at",{ascending:false}).limit(30);
+  if(eventError)throw eventError;
+  events=(ev||[]).reverse().map(x=>({fecha:x.occurred_at,tipo:x.event_type,detalle:x.details}));
+  const {data:alerts,error:alertError}=await sb.from("cybershield_alerts")
+    .select("process_pid,description,detected_at").eq("scenario_id",sbScenarioId)
+    .order("detected_at",{ascending:false}).limit(30);
+  if(alertError)throw alertError;
+  sbAlertKeys.clear();
+  (alerts||[]).forEach(x=>sbAlertKeys.add(x.process_pid+"|"+x.description));
+  render();renderLog();
+  aviso("Datos recuperados de Supabase: "+procesos.length+" procesos.");
+}
+
+/* Extiende las acciones existentes sin cambiar el simulador visual. */
+const sbOriginalRegistrar=registrar;
+registrar=function(tipo,detalle){
+  sbOriginalRegistrar(tipo,detalle);
+  if(sbUser)void sbRun(()=>sbSaveEvent(tipo,detalle));
+};
+const sbOriginalCargar=cargar;
+cargar=async function(tipo){
+  procesos=[];selected=null;sbProcessIds.clear();sbAlertKeys.clear();
+  for(const d of escenarios[tipo])crear(...d);
+  if(sbUser){
+    await sbRun(async()=>{
+      await sbSaveScenario(tipo);
+      for(const p of procesos)await sbSaveProcess(p);
+    });
+  }
+  registrar("Escenario","Cargado "+tipo);
+  render();analizar();aviso("Escenario "+tipo+" cargado correctamente");
+};
+const sbOriginalAccion=accion;
+accion=function(nombre){
+  const pid=selected;
+  sbOriginalAccion(nombre);
+  const p=procesos.find(x=>x.pid===pid);
+  if(sbUser&&p)void sbRun(()=>sbSaveProcess(p));
+};
+const sbOriginalAnalizar=analizar;
+analizar=function(){
+  const found=sbOriginalAnalizar();
+  if(sbUser)found.forEach(a=>void sbRun(()=>sbSaveAlert({
+    pid:a.pid,texto:(a.texto||a.text||"Alerta simulada")
+  })));
+  return found;
+};
+const sbOriginalSubmit=$("form").onsubmit;
+$("form").onsubmit=e=>{
+  const before=nextPid;
+  sbOriginalSubmit(e);
+  const created=procesos.find(p=>p.pid===before);
+  if(sbUser&&created)void sbRun(()=>sbSaveProcess(created));
+};
+sb.auth.onAuthStateChange((event,session)=>{
+  if(event==="SIGNED_OUT"){
+    sbUser=null;userBar.classList.add("hidden");authRoot.classList.remove("hidden");
+  }
+});
+sbStartSession().catch(sbError);
+
 </script>
 </body>
 </html>
