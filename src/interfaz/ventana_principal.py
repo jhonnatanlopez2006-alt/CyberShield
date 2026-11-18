@@ -5,7 +5,7 @@ from procesos.gestor_procesos import GestorProcesos
 from recursos.gestor_recursos import resumen
 from seguridad.detector_amenazas import detectar
 from eventos.registro_eventos import RegistroEventos
-from escenarios.simulador_escenarios import cargar
+from escenarios.simulador_escenarios import cargar\nimport os\nfrom integracion.supabase_repository import SupabaseRepository
 
 BG = "#090F1E"
 PANEL = "#111C30"
@@ -21,7 +21,7 @@ AMBER = "#FFC46B"
 class VentanaPrincipal:
     def __init__(self):
         self.gestor = GestorProcesos()
-        self.registro = RegistroEventos()
+        self.registro = RegistroEventos()\n        self.cloud = None\n        self._conectar_supabase()
         self.root = tk.Tk()
         self.root.title("CyberShield  |  Security Operations Dashboard")
         self.root.geometry("1220x790")
@@ -33,7 +33,7 @@ class VentanaPrincipal:
         self._estructura()
         self.actualizar()
 
-    def _estilos(self):
+    def _conectar_supabase(self):\n        """Solicita inicio de sesión solo si Supabase está configurado."""\n        if not os.getenv("SUPABASE_URL") or not os.getenv("SUPABASE_PUBLISHABLE_KEY"):\n            return\n        correo = simpledialog.askstring("CyberShield - Supabase", "Correo de Supabase Auth:", parent=self.root)\n        if not correo:\n            self.mensaje("Supabase no conectado: se conserva el modo local.")\n            return\n        contrasena = simpledialog.askstring("CyberShield - Supabase", "Contraseña:", show="*", parent=self.root)\n        if not contrasena:\n            self.mensaje("Supabase no conectado: se conserva el modo local.")\n            return\n        try:\n            self.cloud = SupabaseRepository()\n            self.cloud.iniciar_sesion(correo, contrasena)\n            self.mensaje("Sesión Supabase autenticada correctamente.")\n        except Exception as exc:\n            self.cloud = None\n            messagebox.showwarning("Supabase no disponible", f"No fue posible iniciar sesión. El simulador continuará en modo local.\\n\\nDetalle: {exc}", parent=self.root)\n\n    def _cloud_evento(self, tipo, detalle, pid=None):\n        if not self.cloud:\n            return\n        try:\n            self.cloud.registrar_evento(tipo, detalle, process_pid=pid)\n        except Exception as exc:\n            self.mensaje(f"Sincronización pendiente ({tipo}): {exc}")\n\n    def _estilos(self):
         style = ttk.Style(self.root)
         style.theme_use("clam")
         style.configure("Cyber.Treeview", background=PANEL, fieldbackground=PANEL,
@@ -200,7 +200,7 @@ class VentanaPrincipal:
             return
         try:
             p = self.gestor.crear(nombre)
-            self.registro.guardar("creación", f"PID {p.pid}: {p.nombre}")
+            self.registro.guardar("creación", f"PID {p.pid}: {p.nombre}")\n            if self.cloud:\n                try:\n                    self.cloud.guardar_proceso(p)\n                    self._cloud_evento("creación", f"PID {p.pid}: {p.nombre}", p.pid)\n                except Exception as exc:\n                    self.mensaje(f"No se pudo guardar en Supabase: {exc}")
             self.mensaje(f"Proceso creado: {p.nombre} (PID {p.pid})")
             self.actualizar()
         except ValueError as exc:
@@ -214,7 +214,7 @@ class VentanaPrincipal:
         pid = int(self.tabla.item(seleccion[0], "values")[0])
         try:
             p = self.gestor.cambiar_estado(pid, accion)
-            self.registro.guardar("estado", f"PID {pid}: {accion} -> {p.estado}")
+            self.registro.guardar("estado", f"PID {pid}: {accion} -> {p.estado}")\n            if self.cloud:\n                try:\n                    self.cloud.guardar_proceso(p)\n                    self._cloud_evento("estado", f"PID {pid}: {accion} -> {p.estado}", pid)\n                except Exception as exc:\n                    self.mensaje(f"No se pudo actualizar en Supabase: {exc}")
             self.mensaje(f"PID {pid}: {p.estado}")
             self.actualizar()
         except (ValueError, KeyError) as exc:
@@ -222,7 +222,7 @@ class VentanaPrincipal:
 
     def escenario(self, nombre):
         cargar(self.gestor, nombre)
-        self.registro.guardar("escenario", nombre)
+        self.registro.guardar("escenario", nombre)\n        if self.cloud:\n            try:\n                self.cloud.crear_escenario(nombre, nombre.lower())\n                self._cloud_evento("escenario", nombre)\n                for proceso in self.gestor.listar():\n                    self.cloud.guardar_proceso(proceso)\n            except Exception as exc:\n                self.mensaje(f"No se pudo guardar el escenario en Supabase: {exc}")
         self.mensaje(f"Escenario «{nombre}» cargado correctamente.")
         self.actualizar()
         self.analizar()
@@ -233,7 +233,7 @@ class VentanaPrincipal:
             self.mensaje("Análisis finalizado: sin anomalías simuladas.")
         for alerta in self.alertas:
             detalle = f"PID {alerta['pid']} | {alerta['tipo']}: {alerta['detalle']}"
-            self.registro.guardar("alerta", detalle)
+            self.registro.guardar("alerta", detalle)\n            if self.cloud:\n                try:\n                    self.cloud.registrar_alerta(alerta["tipo"], "alta" if alerta["tipo"] == "CPU" else "media", detalle, process_pid=alerta["pid"])\n                    self._cloud_evento("alerta", detalle, alerta["pid"])\n                except Exception as exc:\n                    self.mensaje(f"No se pudo guardar la alerta en Supabase: {exc}")
             self.mensaje("⚠ " + detalle)
         self.actualizar()
 
