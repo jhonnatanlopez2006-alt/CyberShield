@@ -1,24 +1,30 @@
-# Arquitectura inicial
+# Arquitectura del proyecto
 
-## Estilo arquitectónico
-Se propone una arquitectura modular por responsabilidades. La interfaz será el punto de interacción con el usuario y se comunicará con módulos especializados.
+## Enfoque
+CyberShield utiliza una arquitectura modular por responsabilidades. La interfaz Tkinter coordina componentes independientes para la gestión de procesos simulados, agregación de recursos, evaluación de reglas, escenarios y registro de eventos.
 
-## Componentes
-| Componente | Responsabilidad | Tecnología prevista |
+Este documento conserva la arquitectura planteada inicialmente y aclara las tecnologías realmente implementadas en el prototipo.
+
+## Componentes implementados
+
+| Componente | Responsabilidad | Archivo principal |
 |---|---|---|
-| Interfaz de usuario | Presentar información, alertas y controles | Python / Tkinter o PyQt5 |
-| Gestor de procesos | Administrar procesos simulados y sus estados | Python |
-| Detector de amenazas | Evaluar reglas y reconocer patrones simulados | Python |
-| Gestor de recursos | Calcular uso ficticio de CPU y memoria | Python |
-| Registro de eventos | Almacenar eventos y alertas | JSON / TXT |
-| Gestor de escenarios | Configurar simulaciones didácticas | Python |
+| Interfaz | Mostrar tabla, métricas, controles y alertas | `src/interfaz/ventana_principal.py` |
+| Punto de entrada | Iniciar la aplicación | `src/main.py` |
+| Gestor de procesos | Crear procesos ficticios y validar sus estados | `src/procesos/gestor_procesos.py` |
+| Gestor de recursos | Agregar CPU y memoria simuladas | `src/recursos/gestor_recursos.py` |
+| Detector de amenazas | Evaluar reglas didácticas | `src/seguridad/detector_amenazas.py` |
+| Simulador de escenarios | Preparar escenarios normales y sospechosos | `src/escenarios/simulador_escenarios.py` |
+| Registro de eventos | Guardar eventos en JSONL | `src/eventos/registro_eventos.py` |
 
 ## Diagrama de arquitectura
+
 ```mermaid
 flowchart TB
-  U[Estudiante] --> UI[Interfaz de usuario]
+  U[Estudiante] --> UI[Interfaz Tkinter]
   UI --> ES[Gestor de escenarios]
-  ES --> GP[Gestor de procesos]
+  UI --> GP[Gestor de procesos]
+  ES --> GP
   GP --> GR[Gestor de recursos]
   GR --> DT[Detector de amenazas]
   DT --> RE[Registro de eventos]
@@ -26,22 +32,24 @@ flowchart TB
   GR --> UI
 ```
 
-## Diagrama de funcionamiento
+## Flujo de funcionamiento
+
 ```mermaid
 flowchart LR
-  A[Usuario] --> B[Configura escenario]
-  B --> C[Simulación de procesos]
-  C --> D[Estimación de CPU y memoria]
-  D --> E[Evaluación de reglas]
-  E --> F{¿Se detecta anomalía?}
-  F -- Sí --> G[Generar alerta simulada]
-  F -- No --> H[Continuar simulación]
-  G --> I[Registrar evento]
+  A[Usuario] --> B[Selecciona escenario o administra proceso]
+  B --> C[Actualiza procesos simulados]
+  C --> D[Calcula métricas ficticias]
+  D --> E[Evalúa reglas]
+  E --> F{¿Hay anomalía?}
+  F -- Sí --> G[Genera alerta]
+  F -- No --> H[Continúa sin alerta]
+  G --> I[Registra evento]
   H --> I
-  I --> J[Actualizar información]
+  I --> J[Actualiza interfaz]
 ```
 
-## Ciclo de vida de proceso simulado
+## Ciclo de vida didáctico
+
 ```mermaid
 stateDiagram-v2
   [*] --> Nuevo
@@ -53,5 +61,8 @@ stateDiagram-v2
   Terminado --> [*]
 ```
 
-## Restricción de seguridad
-Los procesos serán objetos internos de la simulación. El proyecto no leerá, modificará ni finalizará procesos reales del sistema operativo, ni ejecutará amenazas reales.
+## Tecnologías
+La interfaz implementada utiliza Python/Tkinter. No se utiliza PyQt5 en la versión actual. El dashboard web `index.html` es una demostración independiente.
+
+## Límite de seguridad y alcance
+Los procesos, PID y métricas son datos de simulación. El sistema no consulta ni manipula procesos reales, no ejecuta malware y no realiza detección sobre el equipo anfitrión.
