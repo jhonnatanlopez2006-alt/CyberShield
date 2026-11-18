@@ -21,7 +21,7 @@ Prototipo académico en Python y Tkinter para estudiar gestión de procesos, est
 git clone https://github.com/jhonnatanlopez2006-alt/CyberShield.git
 cd CyberShield
 python -m pip install -r requirements.txt
-python src/main.py
+python -m pip install -r requirements.txt\npython src/main.py
 ```
 
 ## Funcionalidades
@@ -34,7 +34,7 @@ python src/main.py
 ## Configuración de Supabase
 Consulta [documentacion/integracion_supabase.md](documentacion/integracion_supabase.md) y ejecuta [supabase/schema.sql](supabase/schema.sql) en el SQL Editor del proyecto CyberShield. Completa `.env.example` en un archivo local `.env`; nunca subas este último a GitHub.
 
-La base usa RLS y requiere una sesión autenticada. El dashboard web estático todavía no incorpora login ni se debe conectar con claves privilegiadas.
+La base usa RLS por usuario y requiere Supabase Auth. Al iniciar el escritorio, si existe `.env`, CyberShield solicita correo y contraseña para sincronizar procesos, escenarios, eventos y alertas. Sin credenciales mantiene el modo local. El dashboard web estático todavía no incorpora login.
 
 ## Pruebas
 ```bash
